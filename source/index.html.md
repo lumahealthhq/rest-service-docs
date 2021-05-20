@@ -12134,7 +12134,7 @@ xxx | yyy
 ```shell
 #shell command:
 curl \
-http://localhost:8002/api/referrals/?q=xyz \
+http://localhost:8002/api/referrals/?referringProviderId=60a59ea7f1aff8001a4663a0 \
 -H 'Content-Type: application/json' \
 -H 'x-access-token: '"$TOKEN"
 ```
@@ -12142,11 +12142,78 @@ http://localhost:8002/api/referrals/?q=xyz \
 > The command above returns a JSON structured like this: 
 
 ```json-doc
-	{
-		"x": "y",
-		"y", true,
-		"z": 1
-	}
+[
+{
+        "_id": "60a59ea7f1aff8001a4663ac",
+        "deleted": 0,
+        "schedulableFacilities": [],
+        "schedulableProviders": [],
+        "source": "manual",
+        "status": "active",
+        "fileUploads": [],
+        "attempt": 1,
+        "diagnoses": [],
+        "processedReferralFollowup": "pending",
+        "patient": {
+            "_id": "60a59e95f1aff8001a4660b7",
+            "user": "60a59e9493a0d10012a1ba32",
+            "type": "patient",
+            "name": "Hassan DemoKunde",
+            "firstname": "Hassan",
+            "lastname": "DemoKunde",
+            "contact": [
+                {
+                    "type": "email",
+                    "value": "Jacinthe93.hotmail.com@example.com",
+                    "active": true,
+                    "archived": false,
+                    "archivedReason": "none",
+                    "_id": "60a59e95f1aff8001a4660b8"
+                }
+            ],
+            "dateOfBirth": {
+                "year": 1997,
+                "month": 8,
+                "day": 27
+            }
+        },
+        "expireAt": "2021-05-29T23:26:31.629Z",
+        "referringProvider": "Zachary DemoKoss",
+        "referringProviderId": "60a59ea7f1aff8001a4663a0",
+        "facility": "60a59e95f1aff8001a4660e0",
+        "user": "60a59e9493a0d10012a1ba32",
+        "createdBy": "60a59e9493a0d10012a1ba32",
+        "updatedBy": "60a59e9493a0d10012a1ba32",
+        "startOn": "2021-05-19T23:26:31.631Z",
+        "createdAt": "2021-05-19T23:26:31.632Z",
+        "updatedAt": "2021-05-19T23:26:40.041Z",
+        "schedulableProvidersScope": [],
+        "scheduleStartOn": "2021-05-19T23:26:31.632Z",
+        "__v": 0,
+        "lastAttemptSentAt": "2021-05-19T23:26:40.035Z",
+        "reminders": [
+                "_id": "60a59ea8f2660b001a7affe3",
+                "deleted": 0,
+                "type": "referral",
+                "contact": [],
+                "replied": 0,
+                "partialStatus": [],
+                "user": "60a59e9493a0d10012a1ba32",
+                "patient": "60a59e95f1aff8001a4660b7",
+                "facility": "60a59e95f1aff8001a4660e0",
+                "status": "sent",
+                "referral": "60a59ea7f1aff8001a4663ac",
+                "sendAt": "2021-05-19T23:26:31.631Z",
+                "createdBy": "60a59e9493a0d10012a1ba32",
+                "updatedBy": "60a59e9493a0d10012a1ba32",
+                "createdAt": "2021-05-19T23:26:32.713Z",
+                "updatedAt": "2021-05-19T23:26:40.024Z",
+                "__v": 0,
+                "sentAt": "2021-05-19T23:26:40.011Z",
+                "statusReason": ""        
+        ]
+    }
+]
 ```
 
 Authorization: No Auth / x-access-token
@@ -12155,9 +12222,9 @@ Request headers | Description
 -------------- | ----------- 
 x-access-token | JWT auth access token
 
-Response body param | Description 
+Request query Params | Example
 -------------- | ----------- 
-xxx | yyy
+Any property of an [Referral](#referral) | ex.: ?referringProviderId=60a59ea7f1aff8001a4663a0
 
 ## Post referral
 
@@ -12170,11 +12237,25 @@ http://localhost:8002/api/referrals/?q=xyz \
 -H 'Content-Type: application/json' \
 -H 'x-access-token: '"$TOKEN" \
  -d '{
-		"field1": "test",
-		"field2": {
-			"foo": "bar"
-		}
-	}'
+    "source" : "manual",
+    "status" : "active",
+    "attempt" : 0,
+    "diagnoses" : [],
+    "processedReferralFollowup" : "pending",
+    "patient" : "604afed1efb03f0013db2079",
+    "expireAt" : "2021-03-22T04:41:11.613Z",
+    "provider" : "604afef6efb03f0013db2343",
+    "referringProviderId" : "604afef6efb03f0013db2343",
+    "facility" :"604afed1efb03f0013db209b",
+    "startOn" : "2021-05-19 23:18:40.829Z",
+    "schedulableProviders": [],
+    "scheduleStartOn": "2021-05-19T23:19:32.033Z",
+    "externalId": {
+        "source" : "genericfhir",
+        "value" : "123456"
+  }
+}
+}'
 ```
 
 > The command above returns a JSON structured like this: 
@@ -12216,11 +12297,21 @@ http://localhost:8002/api/referrals/:id?q=xyz \
 > The command above returns a JSON structured like this: 
 
 ```json-doc
-	{
-		"x": "y",
-		"y", true,
-		"z": 1
-	}
+{
+    patient, // the patient ID who has been referred it. Must exist in luma.
+    facility, // what facility was the patient referred to visit
+    provider, // what provider was the patient referred to see; optional
+    referringProviderId, // the referring provider who sent this referral. Required. Must be a Luma ID, and must be a provider who is isReferringProvider true
+    status, // default value is ‘active’, do not send in a POST. can be PUT to ‘cancelled’ if the caller wishes to cancel the referral. Will move from active->called->scheduled->complete (or incomplete / expired / closed)
+    startOn, // date time to start communication, defaults to now if left out, optional; however if it is not set, it will not show up in the UI
+    expireAt, // date time to end communication, required, normally 30 days after startOn
+    schedulableProviders, // if provided, an array of providers this referral may be scheduled with
+    scheduleStartsOn, // the date from which the patient is allowed to see scheduling slots for this referral,
+    externalId: { // optional
+        source
+        value
+    }
+}
 ```
 
 Authorization: No Auth / x-access-token
